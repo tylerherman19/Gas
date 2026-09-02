@@ -194,6 +194,15 @@ export default function SpreadChart({ data }: { data: DailyPoint[] }) {
                       strokeLinecap="round"
                     />
                   ))}
+                  {isolatedPoints(s.points).map((p, i) => (
+                    <circle
+                      key={`dot-${i}`}
+                      cx={p.x}
+                      cy={p.y}
+                      r={3.5}
+                      fill={COLOR[s.station_id]}
+                    />
+                  ))}
                   {hover != null && s.points[hover]?.v != null && (
                     <circle
                       cx={s.points[hover].x}
@@ -284,7 +293,7 @@ export default function SpreadChart({ data }: { data: DailyPoint[] }) {
               <span className="tnum ml-auto font-mono text-[10px] text-ink-faint sm:text-[11px]">
                 {hover != null
                   ? fmtDay(chart.allDays[hover], true)
-                  : `${chart.allDays.length} days`}
+                  : `${chart.allDays.length} ${chart.allDays.length === 1 ? "day" : "days"}`}
               </span>
             </div>
           </>
@@ -319,6 +328,20 @@ function Toggle({
       ))}
     </div>
   );
+}
+
+/**
+ * Readings with no neighbour on either side. A path of a single moveto draws
+ * nothing, so these would otherwise be invisible — which is every reading on
+ * the first day of collection.
+ */
+function isolatedPoints(points: Pt[]): Pt[] {
+  return points.filter((p, i) => {
+    if (p.v == null) return false;
+    const prev = points[i - 1];
+    const next = points[i + 1];
+    return (!prev || prev.v == null) && (!next || next.v == null);
+  });
 }
 
 /** Break a line at nulls so gaps don't draw a fake straight run. */
