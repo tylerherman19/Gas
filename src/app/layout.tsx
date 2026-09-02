@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
+import Nav from "@/components/Nav";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const display = Instrument_Serif({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+});
+const sans = Inter({ variable: "--font-sans", subsets: ["latin"] });
+const mono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Costco Gas: St Louis Park vs Maple Grove",
+  title: "The Costco Gas Index — St Louis Park vs Maple Grove",
   description:
-    "Live tracker and price history for regular and premium gas at the St Louis Park and Maple Grove Costco warehouses in Minnesota.",
-  openGraph: {
-    title: "Costco Gas: St Louis Park vs Maple Grove",
-    description:
-      "Live tracker and price history for the two Twin Cities Costco gas stations.",
-    type: "website",
-  },
+    "A running head-to-head between the two Twin Cities Costco gas stations: current price, 7-day change, and which one has been cheaper.",
 };
 
 export default function RootLayout({
@@ -23,40 +23,57 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const dateline = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable} h-full`}>
       <body className="min-h-full flex flex-col">
-        <header className="border-b border-line">
-          <div className="mx-auto flex w-full max-w-3xl items-center gap-5 px-5 py-4">
-            <Link
-              href="/"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-[11px] font-semibold text-white"
-              aria-label="Home"
-            >
-              ⛽
-            </Link>
-            <nav className="flex items-center gap-4 text-sm text-muted">
-              <Link href="/" className="transition-colors hover:text-foreground">
-                tracker
-              </Link>
-              <Link href="/about" className="transition-colors hover:text-foreground">
-                about
-              </Link>
-            </nav>
-            <span className="ml-auto font-mono text-xs text-muted">MN</span>
+        <header className="px-5 pt-8">
+          <div className="mx-auto w-full max-w-4xl">
+            <div className="flex items-baseline justify-between gap-4 pb-2">
+              <span className="tracking-label font-mono text-[10px] text-ink-faint">
+                Twin Cities · Minnesota
+              </span>
+              <span className="tracking-label font-mono text-[10px] text-ink-faint">
+                No. 377 / No. 648
+              </span>
+            </div>
+
+            <div className="double-rule" />
+
+            <h1 className="pt-5 text-center font-display text-[clamp(2.4rem,7vw,4.25rem)] leading-[0.95] tracking-tight">
+              The Costco Gas Index
+            </h1>
+
+            <p className="pt-3 text-center font-display text-lg italic text-ink-soft">
+              St Louis Park <span className="not-italic text-ink-faint">vs</span> Maple Grove
+            </p>
+
+            <div className="mt-5 flex items-center justify-between border-t border-b border-rule py-2">
+              <Nav />
+              <span className="tracking-label font-mono text-[10px] text-ink-faint">
+                {dateline}
+              </span>
+            </div>
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-10">{children}</main>
+        <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-10">{children}</main>
 
-        <footer className="border-t border-line">
-          <div className="mx-auto w-full max-w-3xl px-5 py-6 text-xs leading-relaxed text-muted">
-            Prices are read directly from Costco and refreshed every 3 hours. Not
-            affiliated with Costco Wholesale. Check the pump before you commit to
-            the detour.
+        <footer className="px-5 pb-10">
+          <div className="mx-auto w-full max-w-4xl">
+            <div className="perforated mb-4" />
+            <p className="font-mono text-[11px] leading-relaxed text-ink-faint">
+              Prices read directly from Costco every three hours. History begins the
+              day collection started — Costco publishes only current prices, so there
+              is nothing to backfill. Not affiliated with Costco Wholesale. Check the
+              pump before you commit to the detour.
+            </p>
           </div>
         </footer>
       </body>

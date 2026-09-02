@@ -1,11 +1,17 @@
-# Costco Gas — St Louis Park vs Maple Grove
+# The Costco Gas Index
 
 Live tracker and price history for the two Twin Cities Costco gas stations:
 **#377 St Louis Park** and **#648 Maple Grove**.
 
-Modeled on [Jack LaFond's national Costco gas tracker](https://www.jack.bio/costcogas),
-narrowed to the two Minnesota warehouses and extended to track premium as well
-as regular.
+Owes its idea to [Jack LaFond's national Costco gas tracker](https://www.jack.bio/costcogas),
+narrowed to the two Minnesota warehouses and extended with premium prices, a
+7-day change per warehouse, and a spread chart shaded in favour of whichever
+warehouse is cheaper on any given day.
+
+The design is an editorial broadsheet: cream paper, Instrument Serif
+headlines, JetBrains Mono for figures, and one colour per warehouse
+(Costco red for St Louis Park, Costco blue for Maple Grove) carried
+consistently through every chart, panel and ledger row. Light mode only.
 
 ## How the prices are sourced
 
@@ -97,8 +103,16 @@ npm install
 npm run dev
 ```
 
-Deploy anywhere that runs Next.js. On Vercel, set the two `NEXT_PUBLIC_*`
-variables in project settings; the page revalidates every 10 minutes.
+### Deploying
+
+**Vercel is the right home for this.** The page is a server component that
+reads Supabase and revalidates every 10 minutes, so you deploy once and it
+keeps itself current. Set the two `NEXT_PUBLIC_*` variables in project
+settings and you are done.
+
+GitHub Pages is possible but it is the fiddlier path: Pages is static-only,
+so the Supabase read would have to move into the browser, or the site would
+need a full rebuild-and-redeploy appended to every scrape run.
 
 ## Notes
 

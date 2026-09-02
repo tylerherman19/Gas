@@ -1,55 +1,83 @@
 @import "tailwindcss";
 
+/* Light only — no dark variants anywhere by design. */
 :root {
-  --background: #fbfbf9;
-  --surface: #ffffff;
-  --foreground: #14140f;
-  --muted: #6b6b60;
-  --line: #e6e4dc;
-  --accent: #b8442c;
-  --accent-soft: #f3e5e0;
-  --up: #b8442c;
-  --down: #2f7a4f;
-}
+  color-scheme: light;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #12120f;
-    --surface: #1a1a16;
-    --foreground: #ededea;
-    --muted: #9a9a8e;
-    --line: #2c2c26;
-    --accent: #e0705a;
-    --accent-soft: #33211d;
-    --up: #e0705a;
-    --down: #5fb489;
-  }
+  --paper: #faf6ee;
+  --paper-deep: #f2ece0;
+  --card: #fffdf8;
+  --ink: #17150f;
+  --ink-soft: #5c554a;
+  --ink-faint: #8d8578;
+  --rule: #e2d9c8;
+  --rule-strong: #cabfa8;
+
+  /* Each warehouse owns a colour, borrowed from Costco's own palette. */
+  --slp: #c8362a;
+  --slp-wash: #f7e6e2;
+  --grove: #17517f;
+  --grove-wash: #e2ebf3;
+
+  --up: #b03a24;
+  --down: #2c7150;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-accent: var(--accent);
-  --color-accent-soft: var(--accent-soft);
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-slp: var(--slp);
+  --color-slp-wash: var(--slp-wash);
+  --color-grove: var(--grove);
+  --color-grove-wash: var(--grove-wash);
   --color-up: var(--up);
   --color-down: var(--down);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  background-color: var(--paper);
+  /* Faint paper grain. Cheap, static, and it keeps the cream from
+     reading as flat #fff-adjacent nothing. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.045'/%3E%3C/svg%3E");
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Tabular figures everywhere prices are shown, so digits don't jitter
-   as values change. */
+/* Prices never jitter when a digit changes. */
 .tnum {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum", "lnum";
+}
+
+.tracking-label {
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Perforated divider — a torn-receipt seam between major sections. */
+.perforated {
+  height: 1px;
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--rule-strong) 0 6px,
+    transparent 6px 12px
+  );
+}
+
+/* Masthead double rule. */
+.double-rule {
+  border-top: 3px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  height: 5px;
 }
