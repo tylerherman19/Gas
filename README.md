@@ -3,10 +3,9 @@
 Live tracker and price history for the two Twin Cities Costco gas stations:
 **#377 St Louis Park** and **#648 Maple Grove**.
 
-Owes its idea to [Jack LaFond's national Costco gas tracker](https://www.jack.bio/costcogas),
-narrowed to the two Minnesota warehouses and extended with premium prices, a
-7-day change per warehouse, and a spread chart shaded in favour of whichever
-warehouse is cheaper on any given day.
+Tracks regular and premium at both warehouses, the 7-day change for each, and
+a spread chart shaded in favour of whichever warehouse is cheaper on any given
+day.
 
 The design is an editorial broadsheet: cream paper, Instrument Serif
 headlines, JetBrains Mono for figures, and one colour per warehouse
@@ -103,16 +102,38 @@ npm install
 npm run dev
 ```
 
-### Deploying
+### Deploying to Vercel
 
-**Vercel is the right home for this.** The page is a server component that
-reads Supabase and revalidates every 10 minutes, so you deploy once and it
-keeps itself current. Set the two `NEXT_PUBLIC_*` variables in project
-settings and you are done.
+The page is a server component that reads Supabase and revalidates every 10
+minutes, so you deploy once and it keeps itself current — no rebuild per
+price change.
 
-GitHub Pages is possible but it is the fiddlier path: Pages is static-only,
-so the Supabase read would have to move into the browser, or the site would
-need a full rebuild-and-redeploy appended to every scrape run.
+1. At [vercel.com/new](https://vercel.com/new), import this repository.
+   Vercel detects Next.js on its own; `vercel.json` pins the framework and
+   region (`iad1`) and sets a couple of security headers.
+2. Under **Settings → Environment Variables**, add for all environments:
+
+   | Name | Value |
+   | --- | --- |
+   | `NEXT_PUBLIC_SUPABASE_URL` | your project URL |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the anon (public) key |
+
+   Only these two. The service role key belongs in GitHub Actions secrets and
+   must never reach the frontend.
+3. Deploy. Pushes to this branch redeploy automatically.
+
+Prefer the CLI:
+
+```bash
+npx vercel link
+npx vercel env add NEXT_PUBLIC_SUPABASE_URL production
+npx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
+npx vercel --prod
+```
+
+GitHub Pages was considered and rejected: it is static-only, so the Supabase
+read would have to move into the browser, or a full rebuild-and-redeploy
+would have to be appended to every scrape run.
 
 ## Notes
 

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
-import Nav from "@/components/Nav";
 import "./globals.css";
 
 const display = Instrument_Serif({
@@ -33,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable} h-full`}>
       <body className="min-h-full flex flex-col">
-        <header className="px-5 pt-8">
+        <header className="px-4 pt-6 sm:px-5 sm:pt-8">
           <div className="mx-auto w-full max-w-4xl">
             <div className="flex items-baseline justify-between gap-4 pb-2">
               <span className="tracking-label font-mono text-[10px] text-ink-faint">
@@ -46,26 +45,25 @@ export default function RootLayout({
 
             <div className="double-rule" />
 
-            <h1 className="pt-5 text-center font-display text-[clamp(2.4rem,7vw,4.25rem)] leading-[0.95] tracking-tight">
+            <h1 className="pt-4 text-center font-display text-[clamp(2rem,8vw,4.25rem)] leading-[0.95] tracking-tight sm:pt-5">
               The Costco Gas Index
             </h1>
 
-            <p className="pt-3 text-center font-display text-lg italic text-ink-soft">
+            <p className="pt-2 text-center font-display text-base italic text-ink-soft sm:pt-3 sm:text-lg">
               St Louis Park <span className="not-italic text-ink-faint">vs</span> Maple Grove
             </p>
 
-            <div className="mt-5 flex items-center justify-between border-t border-b border-rule py-2">
-              <Nav />
-              <span className="tracking-label font-mono text-[10px] text-ink-faint">
+            <div className="mt-5 border-t border-b border-rule py-2 text-center">
+              <span className="tracking-label font-mono text-[9px] text-ink-faint sm:text-[10px]">
                 {dateline}
               </span>
             </div>
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-4xl flex-1 px-5 py-10">{children}</main>
+        <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:px-5 sm:py-10">{children}</main>
 
-        <footer className="px-5 pb-10">
+        <footer className="px-4 pb-10 sm:px-5">
           <div className="mx-auto w-full max-w-4xl">
             <div className="perforated mb-4" />
             <p className="font-mono text-[11px] leading-relaxed text-ink-faint">

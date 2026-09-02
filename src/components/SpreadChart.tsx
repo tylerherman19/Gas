@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DailyPoint, Grade } from "@/lib/types";
 import { TRACKED } from "@/lib/data";
 
@@ -14,18 +14,50 @@ const RANGES = [
 const COLOR: Record<number, string> = { 377: "var(--slp)", 648: "var(--grove)" };
 const WASH: Record<number, string> = { 377: "var(--slp-wash)", 648: "var(--grove-wash)" };
 
-const W = 760;
-const H = 300;
-const PAD = { top: 20, right: 16, bottom: 34, left: 52 };
-
 type Pt = { x: number; y: number; v: number | null };
+
+/**
+ * Measures the container so the SVG viewBox matches its pixel width. That
+ * keeps 1 user unit = 1 CSS pixel at every size, so labels stay legible on a
+ * phone instead of being scaled down to nothing — and the chart never needs
+ * to side-scroll.
+ */
+function useWidth() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    ro.observe(el);
+    setWidth(el.getBoundingClientRect().width);
+    return () => ro.disconnect();
+  }, []);
+
+  return [ref, width] as const;
+}
 
 export default function SpreadChart({ data }: { data: DailyPoint[] }) {
   const [days, setDays] = useState<number>(30);
   const [grade, setGrade] = useState<Grade>("regular");
   const [hover, setHover] = useState<number | null>(null);
+  const [box, width] = useWidth();
+
+  const compact = width > 0 && width < 520;
 
   const chart = useMemo(() => {
+    if (width === 0) return null;
+
+    const W = width;
+    const H = compact ? 240 : 300;
+    const PAD = {
+      top: compact ? 14 : 20,
+      right: compact ? 10 : 16,
+      bottom: compact ? 30 : 34,
+      left: compact ? 40 : 52,
+    };
+
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     const cutoffKey = cutoff.toISOString().slice(0, 10);
@@ -61,27 +93,34 @@ export default function SpreadChart({ data }: { data: DailyPoint[] }) {
       return { ...t, points };
     });
 
-    const ticks = Array.from({ length: 4 }, (_, i) => min + ((max - min) / 3) * i);
-
     return {
+      W,
+      H,
+      PAD,
       allDays,
       series,
       x,
       y,
-      ticks,
+      ticks: (() => {
+        const count = compact ? 3 : 4;
+        return Array.from(
+          { length: count },
+          (_, i) => min + ((max - min) / (count - 1)) * i,
+        );
+      })(),
       bands: buildBands(series[0]?.points ?? [], series[1]?.points ?? [], [
         series[0]?.station_id ?? 0,
         series[1]?.station_id ?? 0,
       ]),
     };
-  }, [data, days, grade]);
+  }, [data, days, grade, width, compact]);
 
   return (
     <section>
       <div className="flex flex-wrap items-end justify-between gap-3 pb-3">
         <div>
-          <h2 className="font-display text-3xl leading-none">The Spread</h2>
-          <p className="pt-1.5 font-mono text-[11px] text-ink-faint">
+          <h2 className="font-display text-2xl leading-none sm:text-3xl">The Spread</h2>
+          <p className="pt-1.5 font-mono text-[10px] leading-snug text-ink-faint sm:text-[11px]">
             Shaded in favour of whichever warehouse is cheaper that day
           </p>
         </div>
@@ -100,124 +139,139 @@ export default function SpreadChart({ data }: { data: DailyPoint[] }) {
         </div>
       </div>
 
-      <div className="border border-rule-strong bg-card">
+      <div ref={box} className="border border-rule-strong bg-card">
         {!chart ? (
-          <p className="px-4 py-24 text-center font-mono text-xs text-ink-faint">
-            Nothing recorded in this window yet.
+          <p className="px-4 py-20 text-center font-mono text-xs text-ink-faint">
+            {width === 0 ? "" : "Nothing recorded in this window yet."}
           </p>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <svg
-                viewBox={`0 0 ${W} ${H}`}
-                className="h-[300px] w-full min-w-[560px]"
-                role="img"
-                aria-label={`${grade} price spread`}
-                onMouseLeave={() => setHover(null)}
-              >
-                {chart.ticks.map((t, i) => (
-                  <g key={i}>
-                    <line
-                      x1={PAD.left}
-                      x2={W - PAD.right}
-                      y1={chart.y(t)}
-                      y2={chart.y(t)}
-                      stroke="var(--rule)"
-                      strokeWidth={1}
-                    />
-                    <text
-                      x={PAD.left - 10}
-                      y={chart.y(t) + 3.5}
-                      textAnchor="end"
-                      className="tnum fill-[var(--ink-faint)] font-mono text-[10px]"
-                    >
-                      ${t.toFixed(2)}
-                    </text>
-                  </g>
-                ))}
-
-                {chart.bands.map((b, i) => (
-                  <path key={i} d={b.d} fill={WASH[b.winner]} />
-                ))}
-
-                {chart.series.map((s) => (
-                  <g key={s.station_id}>
-                    {pathSegments(s.points).map((d, i) => (
-                      <path
-                        key={i}
-                        d={d}
-                        fill="none"
-                        stroke={COLOR[s.station_id]}
-                        strokeWidth={2}
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
-                      />
-                    ))}
-                    {hover != null && s.points[hover]?.v != null && (
-                      <circle
-                        cx={s.points[hover].x}
-                        cy={s.points[hover].y}
-                        r={4.5}
-                        fill="var(--card)"
-                        stroke={COLOR[s.station_id]}
-                        strokeWidth={2}
-                      />
-                    )}
-                  </g>
-                ))}
-
-                {hover != null && (
+            <svg
+              viewBox={`0 0 ${chart.W} ${chart.H}`}
+              width={chart.W}
+              height={chart.H}
+              className="block h-auto w-full touch-pan-y"
+              role="img"
+              aria-label={`${grade} price spread`}
+              onMouseLeave={() => setHover(null)}
+            >
+              {chart.ticks.map((t, i) => (
+                <g key={i}>
                   <line
-                    x1={chart.x(hover)}
-                    x2={chart.x(hover)}
-                    y1={PAD.top}
-                    y2={H - PAD.bottom}
-                    stroke="var(--ink)"
+                    x1={chart.PAD.left}
+                    x2={chart.W - chart.PAD.right}
+                    y1={chart.y(t)}
+                    y2={chart.y(t)}
+                    stroke="var(--rule)"
                     strokeWidth={1}
-                    strokeDasharray="2 3"
-                    opacity={0.4}
                   />
-                )}
+                  <text
+                    x={chart.PAD.left - 8}
+                    y={chart.y(t) + 3.5}
+                    textAnchor="end"
+                    className="tnum fill-[var(--ink-faint)] font-mono"
+                    fontSize={compact ? 9 : 10}
+                  >
+                    ${t.toFixed(2)}
+                  </text>
+                </g>
+              ))}
 
-                {chart.allDays.map((day, i) => {
-                  const step = (W - PAD.left - PAD.right) / Math.max(chart.allDays.length - 1, 1);
-                  return (
-                    <rect
-                      key={day}
-                      x={chart.x(i) - step / 2}
-                      y={PAD.top}
-                      width={step}
-                      height={H - PAD.top - PAD.bottom}
-                      fill="transparent"
-                      onMouseEnter={() => setHover(i)}
+              {chart.bands.map((b, i) => (
+                <path key={i} d={b.d} fill={WASH[b.winner]} />
+              ))}
+
+              {chart.series.map((s) => (
+                <g key={s.station_id}>
+                  {pathSegments(s.points).map((d, i) => (
+                    <path
+                      key={i}
+                      d={d}
+                      fill="none"
+                      stroke={COLOR[s.station_id]}
+                      strokeWidth={2}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
                     />
-                  );
-                })}
+                  ))}
+                  {hover != null && s.points[hover]?.v != null && (
+                    <circle
+                      cx={s.points[hover].x}
+                      cy={s.points[hover].y}
+                      r={4.5}
+                      fill="var(--card)"
+                      stroke={COLOR[s.station_id]}
+                      strokeWidth={2}
+                    />
+                  )}
+                </g>
+              ))}
 
-                <text x={PAD.left} y={H - 12} className="fill-[var(--ink-faint)] font-mono text-[10px]">
-                  {fmtDay(chart.allDays[0])}
-                </text>
-                <text
-                  x={W - PAD.right}
-                  y={H - 12}
-                  textAnchor="end"
-                  className="fill-[var(--ink-faint)] font-mono text-[10px]"
-                >
-                  {fmtDay(chart.allDays[chart.allDays.length - 1])}
-                </text>
-              </svg>
-            </div>
+              {hover != null && (
+                <line
+                  x1={chart.x(hover)}
+                  x2={chart.x(hover)}
+                  y1={chart.PAD.top}
+                  y2={chart.H - chart.PAD.bottom}
+                  stroke="var(--ink)"
+                  strokeWidth={1}
+                  strokeDasharray="2 3"
+                  opacity={0.4}
+                />
+              )}
 
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-rule px-4 py-3">
+              {/* Hit targets. Pointer events cover touch too, so tapping the
+                  chart on a phone reads out that day's pair of prices. */}
+              {chart.allDays.map((day, i) => {
+                const step =
+                  (chart.W - chart.PAD.left - chart.PAD.right) /
+                  Math.max(chart.allDays.length - 1, 1);
+                return (
+                  <rect
+                    key={day}
+                    x={chart.x(i) - step / 2}
+                    y={chart.PAD.top}
+                    width={Math.max(step, 8)}
+                    height={chart.H - chart.PAD.top - chart.PAD.bottom}
+                    fill="transparent"
+                    onPointerEnter={() => setHover(i)}
+                    onPointerDown={() => setHover(i)}
+                  />
+                );
+              })}
+
+              <text
+                x={chart.PAD.left}
+                y={chart.H - 10}
+                className="fill-[var(--ink-faint)] font-mono"
+                fontSize={compact ? 9 : 10}
+              >
+                {fmtDay(chart.allDays[0])}
+              </text>
+              <text
+                x={chart.W - chart.PAD.right}
+                y={chart.H - 10}
+                textAnchor="end"
+                className="fill-[var(--ink-faint)] font-mono"
+                fontSize={compact ? 9 : 10}
+              >
+                {fmtDay(chart.allDays[chart.allDays.length - 1])}
+              </text>
+            </svg>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-rule px-3 py-2.5 sm:px-4 sm:py-3">
               {chart.series.map((s) => {
                 const shown =
                   hover != null
                     ? s.points[hover]?.v
                     : [...s.points].reverse().find((p) => p.v != null)?.v;
                 return (
-                  <span key={s.station_id} className="flex items-center gap-2 font-mono text-[11px]">
+                  <span
+                    key={s.station_id}
+                    className="flex items-center gap-1.5 font-mono text-[10px] sm:gap-2 sm:text-[11px]"
+                  >
                     <span
-                      className="inline-block h-2.5 w-2.5 rounded-full"
+                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
                       style={{ background: COLOR[s.station_id] }}
                     />
                     <span className="text-ink-soft">{s.label}</span>
@@ -227,8 +281,10 @@ export default function SpreadChart({ data }: { data: DailyPoint[] }) {
                   </span>
                 );
               })}
-              <span className="tnum ml-auto font-mono text-[11px] text-ink-faint">
-                {hover != null ? fmtDay(chart.allDays[hover], true) : `${chart.allDays.length} days shown`}
+              <span className="tnum ml-auto font-mono text-[10px] text-ink-faint sm:text-[11px]">
+                {hover != null
+                  ? fmtDay(chart.allDays[hover], true)
+                  : `${chart.allDays.length} days`}
               </span>
             </div>
           </>
@@ -253,7 +309,8 @@ function Toggle({
         <button
           key={o}
           onClick={() => onChange(o)}
-          className={`px-2.5 py-1 font-mono text-[11px] capitalize transition-colors ${
+          // 32px minimum touch height; comfortable to tap without looking chunky.
+          className={`min-h-8 px-2.5 font-mono text-[11px] capitalize transition-colors ${
             i > 0 ? "border-l border-rule" : ""
           } ${value === o ? "bg-ink text-paper" : "text-ink-faint hover:text-ink"}`}
         >
@@ -300,10 +357,9 @@ function buildBands(a: Pt[], b: Pt[], ids: [number, number]) {
 
     // No crossing: one quad spanning the interval.
     if (s0 === 0 || s1 === 0 || Math.sign(s0) === Math.sign(s1)) {
-      const winner = cheaper(s0 !== 0 ? a0.v : a1.v, s0 !== 0 ? b0.v : b1.v);
       bands.push({
         d: `M${a0.x},${a0.y} L${a1.x},${a1.y} L${b1.x},${b1.y} L${b0.x},${b0.y} Z`,
-        winner,
+        winner: s0 !== 0 ? cheaper(a0.v, b0.v) : cheaper(a1.v, b1.v),
       });
       continue;
     }

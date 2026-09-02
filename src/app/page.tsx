@@ -42,10 +42,10 @@ export default async function Page() {
   const daysTracked = new Set(daily.map((d) => d.day)).size;
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-9 sm:space-y-12">
       <Verdict winner={winner} gap={gap} checkedAt={winner?.last_checked_at ?? null} />
 
-      <section className="grid gap-5 md:grid-cols-2">
+      <section className="grid gap-4 sm:gap-5 md:grid-cols-2">
         {stations.map((s) => (
           <StationPanel
             key={s.station_id}
@@ -79,9 +79,9 @@ export default async function Page() {
 
 function Figure({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-card px-4 py-4">
+    <div className="bg-card px-3 py-3.5 sm:px-4 sm:py-4">
       <p className="tracking-label font-mono text-[10px] text-ink-faint">{label}</p>
-      <p className="tnum pt-1.5 font-display text-2xl leading-none">{value}</p>
+      <p className="tnum pt-1.5 font-display text-xl leading-none sm:text-2xl">{value}</p>
     </div>
   );
 }

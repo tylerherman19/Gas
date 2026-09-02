@@ -8,7 +8,7 @@ export default function Ledger({ changes }: { changes: PriceChange[] }) {
   return (
     <section>
       <div className="pb-3">
-        <h2 className="font-display text-3xl leading-none">The Ledger</h2>
+        <h2 className="font-display text-2xl leading-none sm:text-3xl">The Ledger</h2>
         <p className="pt-1.5 font-mono text-[11px] text-ink-faint">
           Every recorded move, newest first
         </p>
@@ -41,7 +41,7 @@ export default function Ledger({ changes }: { changes: PriceChange[] }) {
                   <span className="min-w-0 flex-1 truncate text-sm">
                     {NAMES.get(c.station_id) ?? `No. ${c.station_id}`}
                   </span>
-                  <span className="tnum shrink-0 font-mono text-sm font-semibold">
+                  <span className="tnum shrink-0 font-mono text-[13px] font-semibold sm:text-sm">
                     {c.regular != null ? `$${c.regular.toFixed(3)}` : "—"}
                   </span>
                   <span

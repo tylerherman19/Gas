@@ -21,7 +21,7 @@ export default function StationPanel({
 
   return (
     <article
-      className="relative border bg-card p-6"
+      className="relative border bg-card p-5 sm:p-6"
       style={{ borderColor: isCheapest ? color : "var(--rule-strong)" }}
     >
       {/* Colour bar keys this panel to its line in the chart. */}
@@ -38,7 +38,7 @@ export default function StationPanel({
       </p>
 
       <div className="pt-6">
-        <p className="tnum font-display text-[3.5rem] leading-[0.82]" style={{ color }}>
+        <p className="tnum font-display text-[clamp(2.75rem,11vw,3.5rem)] leading-[0.82]" style={{ color }}>
           ${station.regular != null ? station.regular.toFixed(3) : "—.———"}
         </p>
         <p className="tracking-label pt-2 font-mono text-[10px] text-ink-faint">
