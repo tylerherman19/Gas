@@ -1,0 +1,109 @@
+# Costco Gas — St Louis Park vs Maple Grove
+
+Live tracker and price history for the two Twin Cities Costco gas stations:
+**#377 St Louis Park** and **#648 Maple Grove**.
+
+Modeled on [Jack LaFond's national Costco gas tracker](https://www.jack.bio/costcogas),
+narrowed to the two Minnesota warehouses and extended to track premium as well
+as regular.
+
+## How the prices are sourced
+
+Costco doesn't publish gas prices centrally — they're buried on individual
+warehouse pages. The site calls an undocumented endpoint behind the scenes:
+
+```
+GET https://www.costco.com/AjaxGetGasPricesService?warehouseid=377_648
+
+{"377":{"premium":"4.729","regular":"3.929"},
+ "648":{"premium":"4.499","regular":"3.819"}}
+```
+
+Things worth knowing about it:
+
+- The parameter is lowercase **`warehouseid`**. Other spellings silently
+  return `{"errorMessage":"warehouse id supplied, , is not a number"}`.
+- Multiple warehouse numbers are joined with **underscores**.
+- It caps out at roughly **10 warehouses per call** and quietly drops the rest,
+  so `scripts/scrape.mjs` batches in tens.
+- Requests without a browser-shaped `User-Agent` and `Referer` are dropped.
+- Unknown warehouse numbers come back as `{"999999":{}}` rather than an error.
+
+Costco's other endpoint, `AjaxWarehouseBrowseLookupView` (the lat/lng one that
+also returns addresses and hours), sits behind Akamai and returns **403 from
+datacenter IPs** — including GitHub Actions runners. `AjaxGetGasPricesService`
+does not, which is why this project uses it and hardcodes the two warehouses'
+coordinates in the migration instead.
+
+## Setup
+
+### 1. Database
+
+Run `supabase/migrations/20260902000000_costco_gas.sql` in the Supabase SQL
+editor of your existing fantasy football project. Everything is prefixed
+`costco_gas_` so it sits alongside the existing tables without colliding.
+
+It creates:
+
+| Object | Purpose |
+| --- | --- |
+| `costco_gas_stations` | The tracked warehouses, seeded with #377 and #648 |
+| `costco_gas_prices` | Append-only log, one row per observed price change |
+| `costco_gas_latest` | View: most recent reading per station |
+| `costco_gas_daily` | View: forward-filled daily series for the chart |
+
+Row level security is on, with public read access and writes reserved for the
+service role.
+
+### 2. Environment
+
+Copy `.env.example` to `.env.local` and fill in the values from
+**Supabase → Project settings → API**:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+### 3. Collect prices
+
+Test the Costco fetch without touching the database:
+
+```bash
+npm run scrape -- --dry-run
+```
+
+Then, with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` set:
+
+```bash
+npm run scrape
+```
+
+The scraper writes a row only when a price actually moves, so the table stays a
+clean change log instead of a pile of identical readings.
+
+### 4. Schedule it
+
+`.github/workflows/scrape.yml` runs every 3 hours. Add two repository secrets
+under **Settings → Secrets and variables → Actions**:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY` (service role, not anon — it needs to bypass RLS)
+
+### 5. Run the site
+
+```bash
+npm install
+npm run dev
+```
+
+Deploy anywhere that runs Next.js. On Vercel, set the two `NEXT_PUBLIC_*`
+variables in project settings; the page revalidates every 10 minutes.
+
+## Notes
+
+History starts accumulating the first time the scraper runs — there's no
+backfill, because Costco only exposes current prices. The chart fills in as
+days pass.
+
+Not affiliated with Costco Wholesale.

@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fbfbf9;
+  --surface: #ffffff;
+  --foreground: #14140f;
+  --muted: #6b6b60;
+  --line: #e6e4dc;
+  --accent: #b8442c;
+  --accent-soft: #f3e5e0;
+  --up: #b8442c;
+  --down: #2f7a4f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #12120f;
+    --surface: #1a1a16;
+    --foreground: #ededea;
+    --muted: #9a9a8e;
+    --line: #2c2c26;
+    --accent: #e0705a;
+    --accent-soft: #33211d;
+    --up: #e0705a;
+    --down: #5fb489;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures everywhere prices are shown, so digits don't jitter
+   as values change. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
