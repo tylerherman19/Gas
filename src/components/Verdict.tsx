@@ -1,4 +1,5 @@
 import type { Station } from "@/lib/types";
+import { DISPLAY_TIME_ZONE } from "@/lib/dates";
 
 /**
  * The whole point of the site, stated as a headline: which way to drive.
@@ -66,10 +67,12 @@ export default function Verdict({
           <span className="tracking-label font-mono text-[10px] text-ink-faint">
             Last checked{" "}
             {new Date(checkedAt).toLocaleString("en-US", {
+              timeZone: DISPLAY_TIME_ZONE,
               month: "short",
               day: "numeric",
               hour: "numeric",
               minute: "2-digit",
+              timeZoneName: "short",
             })}
           </span>
         </div>

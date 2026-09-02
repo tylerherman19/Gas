@@ -1,5 +1,6 @@
 import type { PriceChange } from "@/lib/types";
 import { TRACKED } from "@/lib/data";
+import { DISPLAY_TIME_ZONE } from "@/lib/dates";
 
 const NAMES = new Map(TRACKED.map((t) => [t.station_id, t.label]));
 const COLOR: Record<number, string> = { 377: "var(--slp)", 648: "var(--grove)" };
@@ -65,11 +66,13 @@ export default function Ledger({ changes }: { changes: PriceChange[] }) {
                     className="w-full shrink-0 pl-4 font-mono text-[11px] text-ink-faint sm:w-40 sm:pl-0 sm:text-right"
                     dateTime={c.observed_at}
                   >
-                    {new Date(c.observed_at).toLocaleDateString("en-US", {
+                    {new Date(c.observed_at).toLocaleString("en-US", {
+                      timeZone: DISPLAY_TIME_ZONE,
                       month: "short",
                       day: "numeric",
                       hour: "numeric",
                       minute: "2-digit",
+                      timeZoneName: "short",
                     })}
                   </time>
                 </li>

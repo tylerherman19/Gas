@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { DailyPoint, PriceChange, Station } from "./types";
+import { dateKeyDaysAgo } from "./dates";
 
 /** Costco warehouse numbers we track, in display order. */
 export const TRACKED: { station_id: number; label: string }[] = [
@@ -30,13 +31,10 @@ export async function getStations(): Promise<Station[]> {
 export async function getDaily(days: number): Promise<DailyPoint[]> {
   if (!supabase) return [];
 
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-
   const { data, error } = await supabase
     .from("costco_gas_daily")
     .select("station_id, day, regular, premium")
-    .gte("day", since.toISOString().slice(0, 10))
+    .gte("day", dateKeyDaysAgo(days))
     .order("day");
 
   if (error) {
@@ -52,27 +50,29 @@ export async function getDaily(days: number): Promise<DailyPoint[]> {
  */
 export async function getRecentChanges(limit = 20): Promise<PriceChange[]> {
   if (!supabase) return [];
+  const client = supabase;
 
-  const { data, error } = await supabase
-    .from("costco_gas_prices")
-    .select("station_id, observed_at, regular, premium")
-    .order("observed_at", { ascending: false })
-    .limit(limit * 2);
+  const results = await Promise.all(
+    TRACKED.map(async ({ station_id }) => {
+      const { data, error } = await client
+        .from("costco_gas_prices")
+        .select("station_id, observed_at, regular, premium")
+        .eq("station_id", station_id)
+        .order("observed_at", { ascending: false })
+        // One extra row guarantees a previous value for every displayed row.
+        .limit(limit + 1);
 
-  if (error) {
+      if (error) throw error;
+
+      return (data ?? []).map((row, index) => ({
+        ...row,
+        previous_regular: data[index + 1]?.regular ?? null,
+      }));
+    }),
+  ).catch((error) => {
     console.error("getRecentChanges:", error.message);
     return [];
-  }
+  });
 
-  const seenByStation = new Map<number, number | null>();
-  const out: PriceChange[] = [];
-
-  // Rows arrive newest-first, so walking oldest-first lets us attach the
-  // previous reading for each station as we go.
-  for (const row of [...(data ?? [])].reverse()) {
-    out.push({ ...row, previous_regular: seenByStation.get(row.station_id) ?? null });
-    seenByStation.set(row.station_id, row.regular);
-  }
-
-  return out.reverse().slice(0, limit);
+  return results.flat().sort((a, b) => b.observed_at.localeCompare(a.observed_at)).slice(0, limit);
 }

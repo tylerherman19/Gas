@@ -87,8 +87,8 @@ create or replace view costco_gas_daily as
 with bounds as (
   select
     station_id,
-    min(observed_at)::date as first_day,
-    current_date           as last_day
+    min((observed_at at time zone 'America/Chicago'))::date as first_day,
+    (now() at time zone 'America/Chicago')::date            as last_day
   from costco_gas_prices
   group by station_id
 ),
@@ -108,7 +108,7 @@ left join lateral (
   select regular, premium, diesel
   from costco_gas_prices
   where station_id = d.station_id
-    and observed_at < (d.day + 1)
+    and observed_at < ((d.day + 1)::timestamp at time zone 'America/Chicago')
   order by observed_at desc
   limit 1
 ) p on true;

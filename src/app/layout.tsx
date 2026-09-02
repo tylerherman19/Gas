@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
+import { DISPLAY_TIME_ZONE } from "@/lib/dates";
 import "./globals.css";
 
 const display = Instrument_Serif({
@@ -23,6 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const dateline = new Date().toLocaleDateString("en-US", {
+    timeZone: DISPLAY_TIME_ZONE,
     weekday: "long",
     month: "long",
     day: "numeric",

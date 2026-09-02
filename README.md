@@ -108,6 +108,8 @@ The page is a server component that reads Supabase and revalidates every 10
 minutes, so you deploy once and it keeps itself current — no rebuild per
 price change.
 
+The production site is [costco-gas-index.vercel.app](https://costco-gas-index.vercel.app/).
+
 1. At [vercel.com/new](https://vercel.com/new), import this repository.
    Vercel detects Next.js on its own; `vercel.json` pins the framework and
    region (`iad1`) and sets a couple of security headers.

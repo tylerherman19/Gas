@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DailyPoint, Grade } from "@/lib/types";
 import { TRACKED } from "@/lib/data";
+import { dateKeyDaysAgo, formatDayKey } from "@/lib/dates";
 
 const RANGES = [
   { label: "7d", days: 7 },
@@ -58,11 +59,7 @@ export default function SpreadChart({ data }: { data: DailyPoint[] }) {
       left: compact ? 40 : 52,
     };
 
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffKey = cutoff.toISOString().slice(0, 10);
-
-    const rows = data.filter((d) => d.day >= cutoffKey);
+    const rows = data.filter((d) => d.day >= dateKeyDaysAgo(days));
     const allDays = [...new Set(rows.map((r) => r.day))].sort();
     if (!allDays.length) return null;
 
@@ -406,10 +403,5 @@ function buildBands(a: Pt[], b: Pt[], ids: [number, number]) {
 }
 
 function fmtDay(day: string, long = false) {
-  const [y, m, d] = day.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    ...(long ? { year: "numeric" } : {}),
-  });
+  return formatDayKey(day, long);
 }
