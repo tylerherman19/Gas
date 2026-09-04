@@ -341,39 +341,26 @@ function isolatedPoints(points: Pt[]): Pt[] {
   });
 }
 
-/**
- * Break a line at nulls so gaps don't draw a fake straight run — and draw the
- * runs as steps, not diagonals. A posted warehouse price is a step function:
- * the old price holds right up to the day it changes, so the line travels
- * horizontally first and makes its whole move at the new day. Diagonal
- * segments would invent a midday drift the data never recorded.
- */
+/** Break a line at nulls so gaps don't draw a fake straight run. */
 function pathSegments(points: Pt[]): string[] {
   const out: string[] = [];
   let cur: string[] = [];
-  let prevY = 0;
   for (const p of points) {
     if (p.v == null) {
       if (cur.length) out.push(cur.join(" "));
       cur = [];
       continue;
     }
-    if (!cur.length) {
-      cur.push(`M${p.x},${p.y}`);
-    } else {
-      cur.push(`L${p.x},${prevY}`, `L${p.x},${p.y}`);
-    }
-    prevY = p.y;
+    cur.push(`${cur.length ? "L" : "M"}${p.x},${p.y}`);
   }
   if (cur.length) out.push(cur.join(" "));
   return out;
 }
 
 /**
- * The area between the two lines, tinted for whichever station is cheaper.
- * With step lines both series hold their price across the whole interval and
- * jump at the day boundary, so each band is a plain rectangle whose winner is
- * exact for every day it covers — no interpolated crossings to split.
+ * The area between the two lines, split at every crossing so each band can be
+ * tinted for whichever station is cheaper across that stretch. Adjacent bands
+ * of the same colour render as one continuous shape.
  */
 function buildBands(a: Pt[], b: Pt[], ids: [number, number]) {
   const bands: { d: string; winner: number }[] = [];
@@ -382,11 +369,33 @@ function buildBands(a: Pt[], b: Pt[], ids: [number, number]) {
   for (let i = 0; i < Math.min(a.length, b.length) - 1; i++) {
     const a0 = a[i], a1 = a[i + 1], b0 = b[i], b1 = b[i + 1];
     if (a0.v == null || a1.v == null || b0.v == null || b1.v == null) continue;
-    if (a0.v === b0.v) continue;
+
+    const s0 = a0.v - b0.v;
+    const s1 = a1.v - b1.v;
+
+    if (s0 === 0 && s1 === 0) continue;
+
+    // No crossing: one quad spanning the interval.
+    if (s0 === 0 || s1 === 0 || Math.sign(s0) === Math.sign(s1)) {
+      bands.push({
+        d: `M${a0.x},${a0.y} L${a1.x},${a1.y} L${b1.x},${b1.y} L${b0.x},${b0.y} Z`,
+        winner: s0 !== 0 ? cheaper(a0.v, b0.v) : cheaper(a1.v, b1.v),
+      });
+      continue;
+    }
+
+    // Crossing: split into two triangles meeting where the lines intersect.
+    const t = s0 / (s0 - s1);
+    const cx = a0.x + (a1.x - a0.x) * t;
+    const cy = a0.y + (a1.y - a0.y) * t;
 
     bands.push({
-      d: `M${a0.x},${a0.y} L${a1.x},${a0.y} L${b1.x},${b0.y} L${b0.x},${b0.y} Z`,
+      d: `M${a0.x},${a0.y} L${cx},${cy} L${b0.x},${b0.y} Z`,
       winner: cheaper(a0.v, b0.v),
+    });
+    bands.push({
+      d: `M${cx},${cy} L${a1.x},${a1.y} L${b1.x},${b1.y} Z`,
+      winner: cheaper(a1.v, b1.v),
     });
   }
 

@@ -1,4 +1,3 @@
-import GapChart from "@/components/GapChart";
 import Ledger from "@/components/Ledger";
 import SpreadChart from "@/components/SpreadChart";
 import StationPanel from "@/components/StationPanel";
@@ -63,8 +62,6 @@ export default async function Page() {
       <div className="perforated" />
 
       <SpreadChart data={daily} />
-
-      <GapChart data={daily} />
 
       <section className="grid grid-cols-2 gap-px border border-rule-strong bg-rule sm:grid-cols-4">
         <Figure label="30-day low" value={low30 != null ? `$${low30.toFixed(3)}` : "—"} />
