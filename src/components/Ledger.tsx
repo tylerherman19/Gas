@@ -1,3 +1,4 @@
+import Reveal from "@/components/Reveal";
 import type { PriceChange } from "@/lib/types";
 import { TRACKED } from "@/lib/data";
 import { DISPLAY_TIME_ZONE } from "@/lib/dates";
@@ -8,12 +9,12 @@ const COLOR: Record<number, string> = { 377: "var(--slp)", 648: "var(--grove)" }
 export default function Ledger({ changes }: { changes: PriceChange[] }) {
   return (
     <section>
-      <div className="pb-3">
+      <Reveal className="pb-3">
         <h2 className="font-display text-2xl leading-none sm:text-3xl">The Ledger</h2>
         <p className="pt-1.5 font-mono text-[11px] text-ink-faint">
           Every recorded move, newest first
         </p>
-      </div>
+      </Reveal>
 
       <div className="border border-rule-strong bg-card">
         {changes.length === 0 ? (
@@ -29,8 +30,10 @@ export default function Ledger({ changes }: { changes: PriceChange[] }) {
                   : null;
 
               return (
-                <li
+                <Reveal
+                  as="li"
                   key={`${c.station_id}-${c.observed_at}`}
+                  delay={Math.min(60 + i * 45, 330)}
                   className={`flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 ${
                     i > 0 ? "border-t border-rule" : ""
                   }`}
@@ -75,7 +78,7 @@ export default function Ledger({ changes }: { changes: PriceChange[] }) {
                       timeZoneName: "short",
                     })}
                   </time>
-                </li>
+                </Reveal>
               );
             })}
           </ul>
