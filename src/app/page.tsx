@@ -1,4 +1,6 @@
+import CountUp from "@/components/CountUp";
 import Ledger from "@/components/Ledger";
+import Reveal from "@/components/Reveal";
 import SpreadChart from "@/components/SpreadChart";
 import StationPanel from "@/components/StationPanel";
 import Verdict from "@/components/Verdict";
@@ -43,12 +45,14 @@ export default async function Page() {
 
   return (
     <div className="space-y-9 sm:space-y-12">
-      <Verdict winner={winner} gap={gap} checkedAt={winner?.last_checked_at ?? null} />
+      <Reveal delay={80}>
+        <Verdict winner={winner} gap={gap} checkedAt={winner?.last_checked_at ?? null} />
+      </Reveal>
 
       <section className="grid gap-4 sm:gap-5 md:grid-cols-2">
-        {stations.map((s) => (
+        {stations.map((s, i) => (
+          <Reveal key={s.station_id} delay={160 + i * 90} className="h-full">
           <StationPanel
-            key={s.station_id}
             station={s}
             stats={statsById.get(s.station_id)!}
             accent={s.station_id === 377 ? "slp" : "grove"}
@@ -56,32 +60,51 @@ export default async function Page() {
             daysCheaper={cheaperDays[s.station_id] ?? 0}
             daysCounted={daysCounted}
           />
+          </Reveal>
         ))}
       </section>
 
-      <div className="perforated" />
+      <Reveal>
+        <div className="perforated" />
+      </Reveal>
 
-      <SpreadChart data={daily} />
+      <Reveal>
+        <SpreadChart data={daily} />
+      </Reveal>
 
+      <Reveal>
       <section className="grid grid-cols-2 gap-px border border-rule-strong bg-rule sm:grid-cols-4">
-        <Figure label="30-day low" value={low30 != null ? `$${low30.toFixed(3)}` : "—"} />
-        <Figure label="30-day high" value={high30 != null ? `$${high30.toFixed(3)}` : "—"} />
-        <Figure label="30-day average" value={avg30 != null ? `$${avg30.toFixed(3)}` : "—"} />
-        <Figure label="Days on record" value={String(daysTracked)} />
+        <Figure label="30-day low" value={low30} format="price" />
+        <Figure label="30-day high" value={high30} format="price" />
+        <Figure label="30-day average" value={avg30} format="price" />
+        <Figure label="Days on record" value={daysTracked} format="int" />
       </section>
+      </Reveal>
 
-      <div className="perforated" />
+      <Reveal>
+        <div className="perforated" />
+      </Reveal>
 
       <Ledger changes={changes} />
     </div>
   );
 }
 
-function Figure({ label, value }: { label: string; value: string }) {
+function Figure({
+  label,
+  value,
+  format,
+}: {
+  label: string;
+  value: number | null;
+  format: "price" | "int";
+}) {
   return (
     <div className="bg-card px-3 py-3.5 sm:px-4 sm:py-4">
       <p className="tracking-label font-mono text-[10px] text-ink-faint">{label}</p>
-      <p className="tnum pt-1.5 font-display text-xl leading-none sm:text-2xl">{value}</p>
+      <p className="tnum pt-1.5 font-display text-xl leading-none sm:text-2xl">
+        {value == null ? "—" : <CountUp value={value} format={format} />}
+      </p>
     </div>
   );
 }
