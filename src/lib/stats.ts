@@ -13,10 +13,18 @@ export type StationStats = {
 };
 
 function seriesFor(daily: DailyPoint[], stationId: number, grade: Grade) {
+  let lastKnown: number | null = null;
+
   return daily
     .filter((d) => d.station_id === stationId)
     .sort((a, b) => a.day.localeCompare(b.day))
-    .map((d) => ({ day: d.day, value: d[grade] }));
+    .map((d) => {
+      // Costco sometimes omits one grade from an otherwise valid reading.
+      // A missing grade means "unchanged," so carry its last known price
+      // forward instead of turning that day into a gap in the series.
+      if (d[grade] != null) lastKnown = d[grade];
+      return { day: d.day, value: lastKnown };
+    });
 }
 
 export function statsFor(
