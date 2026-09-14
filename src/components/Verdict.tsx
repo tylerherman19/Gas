@@ -1,3 +1,4 @@
+import CountUp from "@/components/CountUp";
 import type { Station } from "@/lib/types";
 import { DISPLAY_TIME_ZONE } from "@/lib/dates";
 
@@ -27,7 +28,10 @@ export default function Verdict({
 
   return (
     <section className="relative overflow-hidden border border-ink bg-card">
-      <div className="absolute inset-x-0 top-0 h-1.5" style={{ background: accent }} />
+      <div
+        className="bar-x absolute inset-x-0 top-0 h-1.5"
+        style={{ background: accent, "--m-delay": "200ms" } as React.CSSProperties}
+      />
 
       <div className="px-4 pt-7 pb-6 text-center sm:px-10 sm:pt-9 sm:pb-7">
         <p className="tracking-label font-mono text-[10px] text-ink-faint">
@@ -44,13 +48,21 @@ export default function Verdict({
         {!tied && gap != null && (
           <p className="pt-4 font-display text-base italic leading-snug text-ink-soft sm:pt-5 sm:text-xl">
             cheaper by{" "}
-            <span className="tnum not-italic font-sans font-semibold" style={{ color: accent }}>
-              {(gap * 100).toFixed(1)}¢
-            </span>{" "}
+            <CountUp
+              value={gap * 100}
+              format="cents"
+              delay={450}
+              className="tnum not-italic font-sans font-semibold"
+              style={{ color: accent }}
+            />{" "}
             a gallon — about{" "}
-            <span className="tnum not-italic font-sans font-semibold" style={{ color: accent }}>
-              ${perFill.toFixed(2)}
-            </span>{" "}
+            <CountUp
+              value={perFill}
+              format="dollars2"
+              delay={550}
+              className="tnum not-italic font-sans font-semibold"
+              style={{ color: accent }}
+            />{" "}
             on a 14-gallon fill
           </p>
         )}
