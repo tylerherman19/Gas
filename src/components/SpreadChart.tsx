@@ -175,11 +175,11 @@ export default function SpreadChart({ data }: { data: DailyPoint[] }) {
               ))}
 
               {chart.bands.map((b, i) => (
-                <path key={i} d={b.d} fill={WASH[b.winner]} />
+                <path key={`${i}-${days}-${grade}`} d={b.d} fill={WASH[b.winner]} className="band" />
               ))}
 
-              {chart.series.map((s) => (
-                <g key={s.station_id}>
+              {chart.series.map((s, si) => (
+                <g key={`${s.station_id}-${days}-${grade}`}>
                   {pathSegments(s.points).map((d, i) => (
                     <path
                       key={i}
@@ -189,6 +189,9 @@ export default function SpreadChart({ data }: { data: DailyPoint[] }) {
                       strokeWidth={2}
                       strokeLinejoin="round"
                       strokeLinecap="round"
+                      pathLength={1}
+                      className="draw-line"
+                      style={{ "--m-delay": `${150 + si * 140}ms` } as React.CSSProperties}
                     />
                   ))}
                   {isolatedPoints(s.points).map((p, i) => (
@@ -198,6 +201,7 @@ export default function SpreadChart({ data }: { data: DailyPoint[] }) {
                       cy={p.y}
                       r={3.5}
                       fill={COLOR[s.station_id]}
+                      className="band"
                     />
                   ))}
                   {hover != null && s.points[hover]?.v != null && (
@@ -316,7 +320,7 @@ function Toggle({
           key={o}
           onClick={() => onChange(o)}
           // 32px minimum touch height; comfortable to tap without looking chunky.
-          className={`min-h-8 px-2.5 font-mono text-[11px] capitalize transition-colors ${
+          className={`m-press min-h-8 px-2.5 font-mono text-[11px] capitalize ${
             i > 0 ? "border-l border-rule" : ""
           } ${value === o ? "bg-ink text-paper" : "text-ink-faint hover:text-ink"}`}
         >
