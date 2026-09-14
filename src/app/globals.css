@@ -81,3 +81,138 @@ body {
   border-bottom: 1px solid var(--ink);
   height: 5px;
 }
+
+/* ---------------------------------------------------------------------------
+   Motion system. One rulebook for the whole paper: quick start, soft landing,
+   fixed rungs on the speed ladder, small distances, no bounce, no libraries.
+--------------------------------------------------------------------------- */
+:root {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --d-hover: 120ms;  /* hovers and presses */
+  --d-item: 240ms;   /* small fades, list items */
+  --d-panel: 400ms;  /* panels rising in */
+  --d-draw: 700ms;   /* numbers settling, strokes drawing on */
+}
+
+@keyframes m-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes m-fade {
+  from { opacity: 0; }
+}
+@keyframes m-fade-soft {
+  from { opacity: 0; }
+  to { opacity: 0.08; }
+}
+@keyframes m-sweep {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes m-grow {
+  from { width: 0; }
+}
+@keyframes m-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Load-in choreography: .m-load rises 8px and settles. The delay rides on the
+   element's own --m-delay so the masthead sequence reads top to bottom. */
+.m-load {
+  opacity: 0;
+  animation: m-rise var(--d-panel) var(--ease) var(--m-delay, 0ms) forwards;
+}
+.m-sweep {
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: m-sweep var(--d-panel) var(--ease) var(--m-delay, 0ms) forwards;
+}
+
+/* Scroll reveals. The hidden default is undone by the <noscript> style in the
+   layout, so a reader with no JS never gets a blank page. */
+.reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--d-panel) var(--ease) var(--m-delay, 0ms),
+    transform var(--d-panel) var(--ease) var(--m-delay, 0ms);
+}
+.reveal.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Numbers stay hidden until JS starts the count; without JS the noscript
+   override shows the final figure. */
+.count-up {
+  opacity: 0;
+  transition: opacity var(--d-item) var(--ease);
+}
+.count-up.counting {
+  opacity: 1;
+}
+
+/* Strokes draw themselves once their panel is on screen. pathLength="1" on the
+   element keeps the dash math unit-simple. */
+.draw-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.reveal-in .draw-line {
+  animation: m-draw var(--d-draw) var(--ease) var(--m-delay, 0ms) forwards;
+}
+
+/* Fills arrive once their strokes have had a head start. */
+.spark-fill,
+.band {
+  opacity: 0;
+}
+.reveal-in .spark-fill {
+  animation: m-fade-soft var(--d-item) var(--ease) calc(var(--m-delay, 0ms) + 250ms) forwards;
+}
+.reveal-in .band {
+  animation: m-fade var(--d-item) var(--ease) 350ms forwards;
+}
+
+/* Accent bars sweep in from the left edge once their panel is revealed. */
+.bar-x {
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.reveal-in .bar-x {
+  animation: m-sweep var(--d-draw) var(--ease) var(--m-delay, 0ms) forwards;
+}
+
+/* Share bars grow from zero to their posted width. */
+.reveal-in .grow-bar {
+  animation: m-grow var(--d-draw) var(--ease) var(--m-delay, 0ms) both;
+}
+
+/* Hovers and presses sit on the fastest rung with the same curve. */
+.m-press {
+  transition:
+    color var(--d-hover) var(--ease),
+    background-color var(--d-hover) var(--ease),
+    border-color var(--d-hover) var(--ease),
+    transform var(--d-hover) var(--ease);
+}
+.m-press:active {
+  transform: translateY(1px);
+}
+
+/* Reduced motion: everything lands still. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+  .count-up { opacity: 1; }
+  .draw-line { stroke-dashoffset: 0; }
+  .bar-x { transform: none; }
+  .spark-fill { opacity: 0.08; }
+  .band { opacity: 1; }
+}
