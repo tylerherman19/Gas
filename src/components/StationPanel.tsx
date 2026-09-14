@@ -1,3 +1,4 @@
+import CountUp from "@/components/CountUp";
 import type { Station } from "@/lib/types";
 import type { StationStats } from "@/lib/stats";
 
@@ -21,7 +22,7 @@ export default function StationPanel({
 
   return (
     <article
-      className="relative border bg-card p-5 sm:p-6"
+      className="relative h-full border bg-card p-5 sm:p-6"
       style={{ borderColor: isCheapest ? color : "var(--rule-strong)" }}
     >
       {/* Colour bar keys this panel to its line in the chart. */}
@@ -39,7 +40,11 @@ export default function StationPanel({
 
       <div className="pt-6">
         <p className="tnum font-display text-[clamp(2.75rem,11vw,3.5rem)] leading-[0.82]" style={{ color }}>
-          ${station.regular != null ? station.regular.toFixed(3) : "—.———"}
+          {station.regular != null ? (
+            <CountUp value={station.regular} format="price" delay={220} />
+          ) : (
+            "—.———"
+          )}
         </p>
         <p className="tracking-label pt-2 font-mono text-[10px] text-ink-faint">
           Regular
@@ -63,7 +68,11 @@ export default function StationPanel({
               style={{ color: changeColor(stats.change7d) }}
             >
               {stats.change7d > 0 ? "▲" : stats.change7d < 0 ? "▼" : "◆"}{" "}
-              {Math.abs(stats.change7d * 100).toFixed(1)}¢
+              <CountUp
+                value={Math.abs(stats.change7d * 100)}
+                format="cents"
+                delay={320}
+              />
             </p>
           )}
         </div>
@@ -75,7 +84,11 @@ export default function StationPanel({
           Premium
         </span>
         <span className="tnum font-mono text-sm font-semibold">
-          {station.premium != null ? `$${station.premium.toFixed(3)}` : "—"}
+          {station.premium != null ? (
+            <CountUp value={station.premium} format="price" delay={380} />
+          ) : (
+            "—"
+          )}
         </span>
       </div>
 
@@ -90,8 +103,14 @@ export default function StationPanel({
         </div>
         <div className="mt-2 h-1.5 w-full bg-paper-deep">
           <div
-            className="h-full transition-all"
-            style={{ width: `${Math.round(share * 100)}%`, background: color }}
+            className="grow-bar h-full"
+            style={
+              {
+                width: `${Math.round(share * 100)}%`,
+                background: color,
+                "--m-delay": "450ms",
+              } as React.CSSProperties
+            }
           />
         </div>
       </div>
@@ -143,6 +162,8 @@ function Sparkline({ values, color }: { values: (number | null)[]; color: string
         d={`M${first[0]},${h + 8} L${pts.join(" L")} L${last[0]},${h + 8} Z`}
         fill={color}
         opacity={0.08}
+        className="spark-fill"
+        style={{ "--m-delay": "300ms" } as React.CSSProperties}
       />
       <polyline
         points={pts.join(" ")}
@@ -152,8 +173,11 @@ function Sparkline({ values, color }: { values: (number | null)[]; color: string
         strokeLinejoin="round"
         strokeLinecap="round"
         opacity={0.7}
+        pathLength={1}
+        className="draw-line"
+        style={{ "--m-delay": "300ms" } as React.CSSProperties}
       />
-      <circle cx={last[0]} cy={last[1]} r={2.75} fill={color} />
+      <circle cx={last[0]} cy={last[1]} r={2.75} fill={color} className="band" />
     </svg>
   );
 }
