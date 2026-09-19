@@ -64,13 +64,34 @@ function parsePrice(value) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+/** Thrown when Costco stays unreachable after retries. The caller treats this
+ * as a soft failure: log it and move on, so a transient rate-limit never
+ * fails the scheduled workflow (and never triggers a failure email). */
+class TransientFetchError extends Error {}
+
+/** Backoff for attempt n: exponential with jitter, honoring Retry-After. */
+function backoffMs(attempt, retryAfterHeader) {
+  if (retryAfterHeader) {
+    const secs = Number(retryAfterHeader);
+    if (Number.isFinite(secs) && secs > 0 && secs <= 300) return secs * 1000;
+  }
+  const exp = Math.min(2 ** attempt * 1000, 60_000);
+  return exp + Math.floor(Math.random() * 1000);
+}
+
 async function fetchPrices(stationIds, attempt = 1) {
+  const MAX_ATTEMPTS = 6;
   const url = `${COSTCO_ENDPOINT}?warehouseid=${stationIds.join("_")}`;
   try {
     const res = await fetch(url, {
       headers: BROWSER_HEADERS,
       signal: AbortSignal.timeout(30_000),
     });
+    if (res.status === 429) {
+      const err = new Error("HTTP 429 (rate limited)");
+      err.retryAfter = res.headers.get("retry-after");
+      throw err;
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const text = await res.text();
@@ -80,10 +101,14 @@ async function fetchPrices(stationIds, attempt = 1) {
     if (body.errorMessage) throw new Error(`Costco error: ${body.errorMessage}`);
     return body;
   } catch (err) {
-    if (attempt >= 4) throw err;
-    const backoff = 2 ** attempt * 1000;
-    console.warn(`  attempt ${attempt} failed (${err.message}); retrying in ${backoff}ms`);
-    await sleep(backoff);
+    if (attempt >= MAX_ATTEMPTS) {
+      throw new TransientFetchError(
+        `Costco unreachable after ${MAX_ATTEMPTS} attempts (last: ${err.message})`,
+      );
+    }
+    const wait = backoffMs(attempt, err.retryAfter);
+    console.warn(`  attempt ${attempt} failed (${err.message}); retrying in ${Math.round(wait)}ms`);
+    await sleep(wait);
     return fetchPrices(stationIds, attempt + 1);
   }
 }
@@ -121,10 +146,20 @@ async function main() {
 
   // The endpoint quietly truncates long ID lists, so ask in batches of 10.
   const prices = {};
-  for (let i = 0; i < ids.length; i += 10) {
-    const batch = ids.slice(i, i + 10);
-    Object.assign(prices, await fetchPrices(batch));
-    if (i + 10 < ids.length) await sleep(1000);
+  try {
+    for (let i = 0; i < ids.length; i += 10) {
+      const batch = ids.slice(i, i + 10);
+      Object.assign(prices, await fetchPrices(batch));
+      if (i + 10 < ids.length) await sleep(2000);
+    }
+  } catch (err) {
+    if (err instanceof TransientFetchError) {
+      // Costco is throttling us right now. This run records nothing, the
+      // workflow still succeeds, and the next scheduled run picks it up.
+      console.warn(`Skipping this run: ${err.message}`);
+      return;
+    }
+    throw err;
   }
 
   const observedAt = new Date().toISOString();
