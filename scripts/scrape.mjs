@@ -11,6 +11,11 @@
  * Unlike Costco's AjaxWarehouseBrowseLookupView (which is behind Akamai and
  * 403s from datacenter IPs), this one answers fine from CI.
  *
+ * The endpoint also sometimes answers 200 but silently drops a warehouse
+ * from the payload. When that happens the scraper re-fetches the missing
+ * station on its own, and if it's still absent the run fails loudly --
+ * a stale price that looks fresh is worse than a failed run.
+ *
  * Usage: node scripts/scrape.mjs
  */
 
@@ -146,10 +151,18 @@ async function main() {
 
   // The endpoint quietly truncates long ID lists, so ask in batches of 10.
   const prices = {};
+  const missing = new Set(ids);
   try {
     for (let i = 0; i < ids.length; i += 10) {
       const batch = ids.slice(i, i + 10);
-      Object.assign(prices, await fetchPrices(batch));
+      const body = await fetchPrices(batch);
+      for (const id of batch) {
+        const raw = body[String(id)];
+        if (raw && Object.keys(raw).length > 0) {
+          prices[String(id)] = raw;
+          missing.delete(id);
+        }
+      }
       if (i + 10 < ids.length) await sleep(2000);
     }
   } catch (err) {
@@ -162,6 +175,42 @@ async function main() {
     throw err;
   }
 
+  // Fallback: Costco sometimes answers 200 but silently drops a warehouse
+  // from the payload (this is how Maple Grove went stale on 2026-09-18:
+  // three runs recorded St Louis Park and quietly skipped it). Re-ask for
+  // each missing station on its own -- a lone id can't be truncated, so if
+  // it's still absent after that, something is really wrong.
+  for (const id of [...missing]) {
+    const name = stations.find((s) => s.station_id === id)?.name ?? `#${id}`;
+    console.warn(`  #${id} ${name}: missing from batch response, re-fetching solo`);
+    try {
+      const solo = await fetchPrices([id]);
+      const raw = solo[String(id)];
+      if (raw && Object.keys(raw).length > 0) {
+        prices[String(id)] = raw;
+        missing.delete(id);
+        console.log(`  #${id} ${name}: recovered via solo fetch`);
+      } else {
+        console.warn(`  #${id} ${name}: solo fetch also returned no data`);
+      }
+    } catch (err) {
+      if (!(err instanceof TransientFetchError)) throw err;
+      console.warn(`  #${id} ${name}: solo fetch throttled (${err.message})`);
+    }
+  }
+
+  if (missing.size > 0) {
+    // A station with no data after a solo re-fetch is a real problem, not
+    // a transient throttle: fail loudly instead of letting the chart sit
+    // on a stale price that looks fresh.
+    const names = [...missing]
+      .map((id) => `#${id} ${stations.find((s) => s.station_id === id)?.name ?? ""}`.trim())
+      .join(", ");
+    throw new Error(
+      `Costco returned no price data for ${names} even after a solo re-fetch.`,
+    );
+  }
+
   const observedAt = new Date().toISOString();
   const rows = [];
   let unchanged = 0;
@@ -169,7 +218,9 @@ async function main() {
   for (const station of stations) {
     const raw = prices[String(station.station_id)];
 
-    // An unknown or gas-less warehouse comes back as an empty object.
+    // Unreachable in practice: the fallback above throws if any station is
+    // still missing. Kept as a safety net so a station can never silently
+    // vanish from the payload again.
     if (!raw || Object.keys(raw).length === 0) {
       console.warn(`  #${station.station_id} ${station.name}: no prices returned`);
       continue;
