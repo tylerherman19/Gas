@@ -38,12 +38,3 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           INJECTED_PRICES: ${{ inputs.injected_prices }}
-
-      # Rebuild the site only when prices actually moved. Needs a Vercel
-      # deploy-hook URL stored as the VERCEL_DEPLOY_HOOK repo secret;
-      # the step is skipped entirely until that secret exists.
-      - name: Trigger Vercel rebuild
-        if: ${{ secrets.VERCEL_DEPLOY_HOOK != '' && steps.scrape.outputs.prices_changed == 'true' }}
-        run: curl -sf -X POST "$DEPLOY_HOOK_URL"
-        env:
-          DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK }}

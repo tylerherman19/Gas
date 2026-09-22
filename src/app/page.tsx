@@ -8,8 +8,9 @@ import { getDaily, getRecentChanges, getStations, TRACKED } from "@/lib/data";
 import { cheaperDayCount, statsFor } from "@/lib/stats";
 import { isConfigured } from "@/lib/supabase";
 
-// Prices move on Costco's schedule, not ours.
-export const revalidate = 600;
+// Prices move on Costco's schedule, not ours: render fresh on every
+// request so the page always reflects the database. No rebuilds needed.
+export const dynamic = "force-dynamic";
 
 export default async function Page() {
   if (!isConfigured) return <SetupNotice />;

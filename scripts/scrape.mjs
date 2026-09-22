@@ -322,13 +322,6 @@ async function main() {
     if (error) throw error;
   }
 
-  // Tell the workflow whether prices actually moved, so it only triggers
-  // a Vercel rebuild when there's something new to show.
-  if (process.env.GITHUB_OUTPUT) {
-    const fs = await import("node:fs");
-    fs.appendFileSync(process.env.GITHUB_OUTPUT, `prices_changed=${rows.length > 0}\n`);
-  }
-
   const { error: touchError } = await supabase
     .from("costco_gas_stations")
     .update({ last_checked_at: observedAt })
