@@ -13,13 +13,25 @@ on:
         description: "Raw Costco payload JSON keyed by warehouse id (from the VM fetcher); skips the live Costco fetch"
         required: false
         default: ""
+  # Declared explicitly so a push can never end as "No jobs were run".
+  # GitHub marks a run with zero jobs as failed and sends a failure email,
+  # which is what happened on the 11:25 AM pushes. Pushes do nothing;
+  # real scrapes only arrive via workflow_dispatch from the VM.
+  push:
 
 concurrency:
   group: scrape
   cancel-in-progress: false
 
 jobs:
+  noop:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "push event: nothing to do (scrapes run via workflow_dispatch from the VM)"
+
   scrape:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
