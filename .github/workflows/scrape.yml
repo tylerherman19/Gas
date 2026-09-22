@@ -1,10 +1,12 @@
 name: Scrape Costco gas prices
 
 on:
-  schedule:
-    # Every 3 hours. Costco tends to move prices in the morning, so this
-    # comfortably catches same-day changes without hammering the endpoint.
-    - cron: "17 */3 * * *"
+  # The GitHub-hosted schedule is disabled: Costco blocks/throttles GitHub
+  # runner IPs, so the VM fetches every 3 hours (cron job costco-vm-scrape)
+  # and dispatches this workflow with the payload as injected_prices.
+  # The scheduled runs below are kept commented as documentation.
+  # schedule:
+  #   - cron: "17 */3 * * *"
   workflow_dispatch:
     inputs:
       injected_prices:
