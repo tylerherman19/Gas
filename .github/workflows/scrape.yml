@@ -28,7 +28,7 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "push event: nothing to do (scrapes run via workflow_dispatch from the VM)"
+      - run: 'echo "push event: nothing to do (scrapes run via workflow_dispatch from the VM)"'
 
   scrape:
     if: github.event_name == 'workflow_dispatch'
