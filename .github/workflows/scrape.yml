@@ -6,6 +6,11 @@ on:
     # comfortably catches same-day changes without hammering the endpoint.
     - cron: "17 */3 * * *"
   workflow_dispatch:
+    inputs:
+      injected_prices:
+        description: "Raw Costco payload JSON keyed by warehouse id (from the VM fetcher); skips the live Costco fetch"
+        required: false
+        default: ""
 
 concurrency:
   group: scrape
@@ -29,3 +34,4 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          INJECTED_PRICES: ${{ inputs.injected_prices }}

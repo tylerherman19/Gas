@@ -139,14 +139,35 @@ async function loadStations() {
   return data ?? [];
 }
 
-async function main() {
-  const stations = await loadStations();
-  if (!stations.length) {
-    console.error("No stations configured. Run the migration first.");
-    process.exit(1);
+/**
+ * Split-pipeline mode: the VM fetches from Costco (GitHub's runners are
+ * blocked there) and hands the raw payload over through workflow_dispatch
+ * inputs (INJECTED_PRICES). Validates completeness the same way the live
+ * fetch does -- a partial update never gets written.
+ */
+function parseInjectedPrices(ids) {
+  let parsed;
+  try {
+    parsed = JSON.parse(process.env.INJECTED_PRICES);
+  } catch {
+    throw new Error("INJECTED_PRICES is not valid JSON.");
   }
+  const prices = {};
+  for (const id of ids) {
+    const raw = parsed[String(id)];
+    if (!raw || Object.keys(raw).length === 0) {
+      throw new Error(
+        `Injected price data is missing station #${id}; refusing a partial update.`,
+      );
+    }
+    prices[String(id)] = raw;
+  }
+  console.log(`Using injected price data for ${ids.length} warehouse(s): ${ids.join(", ")}`);
+  return prices;
+}
 
-  const ids = stations.map((s) => s.station_id);
+/** Live Costco fetch: batched requests plus the solo re-fetch fallback. */
+async function collectPrices(ids, stations) {
   console.log(`Fetching prices for ${ids.length} warehouse(s): ${ids.join(", ")}`);
 
   // The endpoint quietly truncates long ID lists, so ask in batches of 10.
@@ -170,7 +191,7 @@ async function main() {
       // Costco is throttling us right now. This run records nothing, the
       // workflow still succeeds, and the next scheduled run picks it up.
       console.warn(`Skipping this run: ${err.message}`);
-      return;
+      return null;
     }
     throw err;
   }
@@ -210,6 +231,22 @@ async function main() {
       `Costco returned no price data for ${names} even after a solo re-fetch.`,
     );
   }
+
+  return prices;
+}
+
+async function main() {
+  const stations = await loadStations();
+  if (!stations.length) {
+    console.error("No stations configured. Run the migration first.");
+    process.exit(1);
+  }
+
+  const ids = stations.map((s) => s.station_id);
+  const prices = process.env.INJECTED_PRICES
+    ? parseInjectedPrices(ids)
+    : await collectPrices(ids, stations);
+  if (!prices) return; // Costco throttling us; soft-skip like before.
 
   const observedAt = new Date().toISOString();
   const rows = [];
